@@ -1,9 +1,13 @@
-import flask
+import flask 
 from flask import request, jsonify
 import sqlite3
+import os
+import sys
 
+# getting flask and put into the app for running API
 app = flask.Flask(__name__)
 app.config["DEBUG"] = True
+
 
 @app.route('/', methods=['GET'])
 def home() :
@@ -11,7 +15,7 @@ def home() :
 
 @app.route('/customers/details',  methods=['GET'])
 def getCustDetais():
-    db = sqlite3.connect('chinook.db')
+    db = db_startup()
     db.row_factory = dict_factory
     cur = db.cursor()
     all_details = cur.execute('SELECT * FROM customers;').fetchall()
@@ -20,7 +24,7 @@ def getCustDetais():
 
 @app.route('/customers/filter',  methods=['GET'])
 def getCustFilter():
-    db = sqlite3.connect('chinook.db')
+    db = db_startup()
     db.row_factory = dict_factory
     cur = db.cursor()
 
@@ -48,7 +52,7 @@ def getCustFilter():
 
 @app.route('/artists/details',  methods=['GET'])
 def getArtistDetais():
-    db = sqlite3.connect('chinook.db')
+    db = db_startup()
     db.row_factory = dict_factory
     cur = db.cursor()
     all_details = cur.execute('SELECT * FROM artists;').fetchall()
@@ -66,5 +70,12 @@ def dict_factory(cursor, row):
         d[col[0]] = row[idx]
     return d
 
+def db_startup():
+
+    # looking into relative path from current path, then connect to database
+    dbPath = 'data_source/chinook.db'
+
+    # connect to database
+    return sqlite3.connect(dbPath)
 
 app.run()
