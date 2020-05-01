@@ -1,81 +1,54 @@
-import flask 
+import flask
 from flask import request, jsonify
-import sqlite3
-import os
-import sys
+import json
+
+from modules.db_operation import db_startup, db_query_run
+from modules.customer import fetchall_customer_detail, fetch_customer_by_filter
+from modules.employee import fetchall_employee_detail
+from modules.artist import fetchall_artist_detail
 
 # getting flask and put into the app for running API
 app = flask.Flask(__name__)
 app.config["DEBUG"] = True
 
-
+# all API controller sections
 @app.route('/', methods=['GET'])
 def home() :
     return "This is REST using python"
 
 @app.route('/customers/details',  methods=['GET'])
-def getCustDetais():
-    db = db_startup()
-    db.row_factory = dict_factory
-    cur = db.cursor()
-    all_details = cur.execute('SELECT * FROM customers;').fetchall()
-
-    return jsonify(all_details)
+def fetch_customers():
+    result = fetchall_customer_detail()
+    return jsonify(result)
 
 @app.route('/customers/filter',  methods=['GET'])
-def getCustFilter():
-    db = db_startup()
-    db.row_factory = dict_factory
-    cur = db.cursor()
-
+def fetch_customers_filter():
+    # Getting data from query parameters
     query_parameters = request.args
     state = query_parameters.get('state')
     country = query_parameters.get('country')
 
-    query = 'SELECT * FROM customers WHERE'
-    to_filter = []
-
-    if state:
-        query += ' State=? AND'
-        to_filter.append(state)
-    if country:
-        query += ' Country=? AND'
-        to_filter.append(country)  
-    if not (state or country):
+    try:
+        # when data successfully found, return json
+        result = fetch_customer_by_filter(state, country)
+        return jsonify(result)
+    except:
+        # when data has not found, return html
         return page_not_found(404)
 
-    query = query[:-3] + ';'
-
-    result = cur.execute(query, to_filter).fetchall()
-
+@app.route('/artists/details',  methods=['GET'])
+def fetch_artists():
+    result = fetchall_artist_detail()
     return jsonify(result)
 
-@app.route('/artists/details',  methods=['GET'])
-def getArtistDetais():
-    db = db_startup()
-    db.row_factory = dict_factory
-    cur = db.cursor()
-    all_details = cur.execute('SELECT * FROM artists;').fetchall()
+@app.route('/employees/details',  methods=['GET'])
+def fetch_employees():
+    result = fetchall_employee_detail()
+    return jsonify(result)
 
-    return jsonify(all_details)
-
+# all API error handler sections 
 @app.errorhandler(404)
 def page_not_found(e):
     return "<h1>404</h1><p>The resource could not be found.</p>", 404
-
-
-def dict_factory(cursor, row):
-    d = {}
-    for idx, col in enumerate(cursor.description):
-        d[col[0]] = row[idx]
-    return d
-
-def db_startup():
-
-    # looking into relative path from current path, then connect to database
-    dbPath = 'data_source/chinook.db'
-
-    # connect to database
-    return sqlite3.connect(dbPath)
 
 app.run()
